@@ -5,6 +5,8 @@ import struct
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from pydub import AudioSegment
+from glob import glob
 load_dotenv()
 
 def save_binary_file(file_name, data):
@@ -58,6 +60,17 @@ def parse_audio_mime_type(mime_type: str) -> dict:
             except (ValueError, IndexError):
                 pass
     return {"bits_per_sample": bits_per_sample, "rate": rate}
+
+def convert_wav_to_mp3(wav_path, bitrate):
+    mp3_path = wav_path.replace(".wav", ".mp3")
+    try:
+        audio = AudioSegment.from_wav(wav_path)
+        audio.export(mp3_path, format="mp3", bitrate=bitrate)
+        print(f"Converted {wav_path} to {mp3_path} at {bitrate}.")
+        os.remove(wav_path)
+        print(f"Removed original WAV file: {wav_path}")
+    except Exception as e:
+        print(f"Error converting {wav_path} to MP3: {e}")
 
 def generate_speech(text_file, output_file, voice_name="Zephyr"):
     try:
@@ -124,3 +137,9 @@ if __name__ == "__main__":
         print(f"English speech ready: {en_result}")
     else:
         print("English audio file was not generated successfully.")
+    mp3_bitrate = "56k"  # Set your desired MP3 bitrate here (e.g., "128k", "192k", "256k")
+    # Convert generated WAV files to MP3
+    if uk_result and os.path.exists(uk_result):
+        convert_wav_to_mp3(uk_result, mp3_bitrate)
+    if en_result and os.path.exists(en_result):
+        convert_wav_to_mp3(en_result, mp3_bitrate)
