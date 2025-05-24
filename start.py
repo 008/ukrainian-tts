@@ -98,3 +98,24 @@ if en_output_file:
     ipd.Audio(filename=en_output_file) # Display/play
 else:
     print("English audio file was not generated successfully.")
+
+# --- WAV to MP3 conversion and cleanup ---
+from glob import glob
+
+mp3_bitrate = "65k"  # Set your desired MP3 bitrate here (e.g., "128k", "192k", "256k")
+
+def convert_wav_to_mp3(wav_path, bitrate):
+    mp3_path = wav_path.replace(".wav", ".mp3")
+    try:
+        audio = AudioSegment.from_wav(wav_path)
+        audio.export(mp3_path, format="mp3", bitrate=bitrate)
+        print(f"Converted {wav_path} to {mp3_path} at {bitrate}.")
+        os.remove(wav_path)
+        print(f"Removed original WAV file: {wav_path}")
+    except Exception as e:
+        print(f"Error converting {wav_path} to MP3: {e}")
+
+# Find all resulting WAV files in the parent directory
+wav_files = glob("../*.wav")
+for wav_file in wav_files:
+    convert_wav_to_mp3(wav_file, mp3_bitrate)
