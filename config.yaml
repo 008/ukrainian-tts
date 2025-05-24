@@ -24,7 +24,7 @@ cudnn_benchmark: false
 cudnn_deterministic: false
 collect_stats: false
 write_collected_feats: false
-max_epoch: 140
+max_epoch: 240
 patience: null
 val_scheduler_criterion:
 - valid
