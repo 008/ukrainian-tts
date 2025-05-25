@@ -2,6 +2,7 @@ import base64
 import mimetypes
 import os
 import struct
+import random
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -77,6 +78,14 @@ def convert_wav_to_mp3(wav_path, bitrate):
     except Exception as e:
         print(f"Error converting {wav_path} to MP3: {e}")
 
+def get_random_voice():
+    voices = [
+        "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus",
+        "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux",
+        "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"
+    ]
+    return random.choice(voices)
+
 def generate_speech(text_file, output_file, voice_name="Zephyr"):
     try:
         with open(text_file, "r", encoding="utf-8") as f:
@@ -133,7 +142,7 @@ if __name__ == "__main__":
     en_output_file = "../output_en"
     if GENERATE_UK:
         print("Generating Ukrainian speech...")
-        uk_result = generate_speech(uk_text_file, uk_output_file, voice_name="Zephyr")
+        uk_result = generate_speech(uk_text_file, uk_output_file, voice_name=get_random_voice())
         if uk_result:
             print(f"Ukrainian speech ready: {uk_result}")
         else:
@@ -142,7 +151,7 @@ if __name__ == "__main__":
         uk_result = None
     if GENERATE_EN:
         print("Generating English speech...")
-        en_result = generate_speech(en_text_file, en_output_file, voice_name="Zephyr")
+        en_result = generate_speech(en_text_file, en_output_file, voice_name=get_random_voice())
         if en_result:
             print(f"English speech ready: {en_result}")
         else:
