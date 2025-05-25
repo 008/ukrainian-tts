@@ -6,8 +6,20 @@ import IPython.display as ipd
 from gtts import gTTS
 from pydub import AudioSegment # <-- Import pydub
 import os # <-- Useful for removing temp files
+from glob import glob # Moved here for better organization
+
+# --- GENERATION FLAGS ---
+# Set to True to generate speech for that language, False to skip.
+GENERATE_UKRAINIAN = False # Set this to False if you want to skip Ukrainian
+GENERATE_ENGLISH = True    # Set this to True if you want English generation
+
 
 def generate_speech(text_file, language, speed_factor=1.0): # <-- Added speed_factor
+    """
+    Generates speech from a text file for a specified language.
+    language: "uk" for Ukrainian, "en" for English.
+    speed_factor: Multiplier for English audio speed (1.0 for normal).
+    """
     try:
         with open(text_file, "r", encoding="utf-8") as f:
             text = f.read()
@@ -20,6 +32,7 @@ def generate_speech(text_file, language, speed_factor=1.0): # <-- Added speed_fa
     if language == "uk":
         output_file = "../output_uk.wav"
         try:
+            print(f"Generating Ukrainian speech from {text_file}...")
             tts = TTS(device="cpu")
             with open(output_file, mode="wb") as audio_file_handle:
                 _, output_text = tts.tts(text,
@@ -37,6 +50,7 @@ def generate_speech(text_file, language, speed_factor=1.0): # <-- Added speed_fa
         final_output_file = "../output_en.wav"    # Your desired final format
 
         try:
+            print(f"Generating English speech from {text_file}...")
             tts_en = gTTS(text=text, lang='en', slow=False) # slow=False is default, but good to be explicit
             tts_en.save(temp_output_file)
 
@@ -76,32 +90,46 @@ def generate_speech(text_file, language, speed_factor=1.0): # <-- Added speed_fa
 uk_text_file = "../textUK.txt"
 en_text_file = "../textEN.txt"
 
-uk_output_file = generate_speech(uk_text_file, "uk")
 
-# Example: Make English voice 25% faster (1.25x)
-# You can adjust the speed_factor:
-# 1.0 = normal speed
-# 1.5 = 50% faster
-# 0.8 = 20% slower
-en_speed = 1.25
-en_output_file = generate_speech(en_text_file, "en", speed_factor=en_speed)
-
-if uk_output_file:
-    print(f"Ukrainian speech ready: {uk_output_file}")
-    ipd.Audio(filename=uk_output_file) # Display/play
+# --- Ukrainian Generation ---
+uk_output_file = None
+if GENERATE_UKRAINIAN:
+    uk_output_file = generate_speech(uk_text_file, "uk")
+    if uk_output_file:
+        print(f"Ukrainian speech ready: {uk_output_file}")
+        # Note: ipd.Audio might only work in environments like Jupyter notebooks
+        # ipd.Audio(filename=uk_output_file) # Display/play
+    else:
+        print("Ukrainian audio file was not generated successfully.")
 else:
-    print("Ukrainian audio file was not generated successfully.")
+    print("Ukrainian speech generation skipped by user settings.")
 
+print("-" * 30) # Separator for clarity
 
-if en_output_file:
-    print(f"English speech ready: {en_output_file}")
-    ipd.Audio(filename=en_output_file) # Display/play
+# --- English Generation ---
+en_output_file = None
+if GENERATE_ENGLISH:
+    # Example: Make English voice 25% faster (1.25x)
+    # You can adjust the speed_factor:
+    # 1.0 = normal speed
+    # 1.5 = 50% faster
+    # 0.8 = 20% slower
+    en_speed = 1.25
+    en_output_file = generate_speech(en_text_file, "en", speed_factor=en_speed)
+    if en_output_file:
+        print(f"English speech ready: {en_output_file}")
+        # Note: ipd.Audio might only work in environments like Jupyter notebooks
+        # ipd.Audio(filename=en_output_file) # Display/play
+    else:
+        print("English audio file was not generated successfully.")
 else:
-    print("English audio file was not generated successfully.")
+    print("English speech generation skipped by user settings.")
+
+print("-" * 30) # Separator for clarity
 
 # --- WAV to MP3 conversion and cleanup ---
-from glob import glob
-
+# This section will still run and convert any .wav files found,
+# regardless of whether they were just generated or already existed.
 mp3_bitrate = "65k"  # Set your desired MP3 bitrate here (e.g., "128k", "192k", "256k")
 
 def convert_wav_to_mp3(wav_path, bitrate):
@@ -115,7 +143,13 @@ def convert_wav_to_mp3(wav_path, bitrate):
     except Exception as e:
         print(f"Error converting {wav_path} to MP3: {e}")
 
+print("Checking for WAV files to convert to MP3 and clean up...")
 # Find all resulting WAV files in the parent directory
 wav_files = glob("../*.wav")
-for wav_file in wav_files:
-    convert_wav_to_mp3(wav_file, mp3_bitrate)
+if wav_files:
+    for wav_file in wav_files:
+        convert_wav_to_mp3(wav_file, mp3_bitrate)
+else:
+    print("No WAV files found for conversion.")
+
+print("\nScript finished.")
