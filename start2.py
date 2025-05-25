@@ -7,7 +7,12 @@ from google.genai import types
 from dotenv import load_dotenv
 from pydub import AudioSegment
 from glob import glob
+from tqdm import tqdm
 load_dotenv()
+
+# Set these flags to enable/disable generation
+GENERATE_UK = True
+GENERATE_EN = False
 
 def save_binary_file(file_name, data):
     with open(file_name, "wb") as f:
@@ -96,48 +101,55 @@ def generate_speech(text_file, output_file, voice_name="Zephyr"):
             )
         ),
     )
-    for chunk in client.models.generate_content_stream(
+    audio_chunks = []
+    print("Generating speech (this may take a while)...")
+    for chunk in tqdm(client.models.generate_content_stream(
         model=model,
         contents=contents,
-        config=generate_content_config,
-    ):
-        if (
-            chunk.candidates is None
-            or chunk.candidates[0].content is None
-            or chunk.candidates[0].content.parts is None
-        ):
-            continue
-        if chunk.candidates[0].content.parts[0].inline_data:
-            inline_data = chunk.candidates[0].content.parts[0].inline_data
-            data_buffer = inline_data.data
-            file_extension = mimetypes.guess_extension(inline_data.mime_type)
-            if file_extension is None:
-                file_extension = ".wav"
-                data_buffer = convert_to_wav(inline_data.data, inline_data.mime_type)
-            save_binary_file(f"{output_file}{file_extension}", data_buffer)
-            return f"{output_file}{file_extension}"
+        config=generate_content_config
+    ), desc="Progress", unit="chunk"):
+        if chunk.candidates and chunk.candidates[0].content and chunk.candidates[0].content.parts:
+            part = chunk.candidates[0].content.parts[0]
+            if hasattr(part, "inline_data") and part.inline_data:
+                inline_data = part.inline_data
+                data_buffer = inline_data.data
+                file_extension = mimetypes.guess_extension(inline_data.mime_type)
+                if file_extension is None:
+                    file_extension = ".wav"
+                    data_buffer = convert_to_wav(inline_data.data, inline_data.mime_type)
+                save_binary_file(f"{output_file}{file_extension}", data_buffer)
+                return f"{output_file}{file_extension}"
+            elif hasattr(part, "text"):
+                print(part.text)
         else:
             print(chunk.text)
     return None
+
 
 if __name__ == "__main__":
     uk_text_file = "../textUK.txt"
     en_text_file = "../textEN.txt"
     uk_output_file = "../output_uk"
     en_output_file = "../output_en"
-    print("Generating Ukrainian speech...")
-    uk_result = generate_speech(uk_text_file, uk_output_file, voice_name="Zephyr")
-    if uk_result:
-        print(f"Ukrainian speech ready: {uk_result}")
+    if GENERATE_UK:
+        print("Generating Ukrainian speech...")
+        uk_result = generate_speech(uk_text_file, uk_output_file, voice_name="Zephyr")
+        if uk_result:
+            print(f"Ukrainian speech ready: {uk_result}")
+        else:
+            print("Ukrainian audio file was not generated successfully.")
     else:
-        print("Ukrainian audio file was not generated successfully.")
-    print("Generating English speech...")
-    en_result = generate_speech(en_text_file, en_output_file, voice_name="Zephyr")
-    if en_result:
-        print(f"English speech ready: {en_result}")
+        uk_result = None
+    if GENERATE_EN:
+        print("Generating English speech...")
+        en_result = generate_speech(en_text_file, en_output_file, voice_name="Zephyr")
+        if en_result:
+            print(f"English speech ready: {en_result}")
+        else:
+            print("English audio file was not generated successfully.")
     else:
-        print("English audio file was not generated successfully.")
-    mp3_bitrate = "56k"  # Set your desired MP3 bitrate here (e.g., "128k", "192k", "256k")
+        en_result = None
+    mp3_bitrate = "65k"  # Set your desired MP3 bitrate here (e.g., "128k", "192k", "256k")
     # Convert generated WAV files to MP3
     if uk_result and os.path.exists(uk_result):
         convert_wav_to_mp3(uk_result, mp3_bitrate)
